@@ -23,6 +23,8 @@ To get the detail description about the pod **`kubectl describe pod podname`**
 
 To delete the pod **`kubectl delete pod podname or podID`**
 
+## ReplicaSet
+
 To create a replicaSet
 ```
 apiVersion: apps/v1
@@ -46,6 +48,8 @@ spec:
           image: sunil3012/ib-image:latest
 ```
 **`kubectl create -f replicaset.yml`**
+
+## Deployment
 
 To create a deployment 
 ```
