@@ -86,5 +86,28 @@ To describe a pod with a keyword **`kubectl describe pods | grep -i image`**
 
 To delete the deployment **`kubectl delete deployment deploymentname`**
 
+## RollOut commands
+
+To rollout to new image **`kubectl edit deploy/deploymentname`**
+
+To get the history of rollouts **`kubectl rollout history deploy/ib-deployment`**
+
+To rollback to previous version **`kubectl rollout undo deploy/deploymentname`**   
+
+
+To check if the rollback got executed **`kubectl describe pods | grep -i image`** You will find the previous image
+
+To pause the rollout **`kubectl rollout pause deploy/deploymentname`**  --- it is like lock, cannot undo, cannot rollout to previous
+
+Test it **`kubectl rollout undo deploy/deploymentname`**  -- not possible
+
+To resume it back **`kubectl rollout resume deploy/deploymentname`**
+
+**`kubectl rollout undo deploy/ib-deployment`** -- now possible
+
+To check the status of the rollout **`kubectl rollout status deploy/deploymentname`**
+
+
+
 
 
