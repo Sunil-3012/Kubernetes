@@ -107,6 +107,28 @@ To resume it back **`kubectl rollout resume deploy/deploymentname`**
 
 To check the status of the rollout **`kubectl rollout status deploy/deploymentname`**
 
+## to create a pod with two containers
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: two-pod-container
+  labels:
+    app: twopod
+spec:
+  containers:
+    - name: nginxcont
+      image: nginx
+      ports:
+      - containerPort: 95
+    - name: busybox-cont
+      image: busybox
+      command: ["sh","-c", "while true; do echo'hello from busybox'; sleep 10; done"]
+```
+then **`kubectl apply -f filename`**
+
+To log into a container **`kubectl exec -it podname -c nginxcont -- sh`**  -c indicates container
+
 
 
 
