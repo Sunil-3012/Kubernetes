@@ -130,6 +130,53 @@ then **`kubectl apply -f filename`**
 To log into a container **`kubectl exec -it podname -c nginxcont -- sh`**  -c indicates container
 
 
+## Creating a Job
 
+To create a **non-parallel Job**
 
+```
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: non-parallel-job
+spec:
+  template:
+    metadata:
+      name: non-parallel-pod
+    spec:
+      containers:
+        - name: non-parallel-container
+          image: busybox
+          command: ["echo","hello from non parallel world"]
+      restartPolicy: Never
+  completions: 3
+```
 
+To create a **Parallel job**
+
+```
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: parallel-job
+spec:
+  template:
+    metadata:
+      name: parallel-pod
+    spec:
+      containers:
+        - name: parallel-cont
+          image: busybox
+          command: ["echo","hello from parallel world"]
+      restartPolicy: Never
+  completions: 6
+  parallelism: 2
+```
+
+**Restart policy can be Never, Always, OnFailure**
+
+**Always**: Always restarts the container if it exits. Use Case: Default for Deployments & ReplicaSets
+
+**OnFailure**: Restarts the container only if it exits with an error (non-zero exit code). Use case: Jobs & CronJobs
+
+**Never**: Never restarts the container, even if it fails. Use Case: Jobs & CronJobs (One-time execution)
