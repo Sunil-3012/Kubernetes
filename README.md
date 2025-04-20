@@ -16,6 +16,11 @@ Topics:
 
 7)Creating users,roles and permissions
 
+8)Exposing the Applications via Services - Cluster IP, NodePort and Load Balancer
+
+
+
+
 
 ## Minikube
 To create a pod `kubectl run podname`
@@ -316,3 +321,142 @@ roleRef:
 then `kubectl create -f rolebinding.yml`
 
 test it with ` kubectl auth can-i list pods -- namespace=dev --as=john `  it should return *yes*
+
+## Exposing the Applications via Services - Cluster IP, NodePort and Load Balancer
+
+### Cluster IP
+This is the default type of Service. It exposes the Service on a cluster-internal IP. Other services within the same Kubernetes cluster can access the Service, but it is not accessible from outside the cluster.
+
+This creates a connection using an internal Cluster IP address and a Port.
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ib-deployment
+  labels:
+    app: bank
+spec:
+  replicas: 3
+  selector:
+     matchLabels:
+       app: bank
+  template:
+    metadata:
+      labels:
+        app: bank
+    spec:
+      containers:
+        - name: cont1
+          image: sunil3012/ib-image:latest
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ib-service
+spec:
+  type: ClusterIP
+  selector:
+    app: bank
+  ports:
+    - port: 80
+      targetPort: 80
+```
+
+### Node Port
+
+This type of Service exposes the Service on each Node’s IP at a static port. A NodePort Service is accessible from outside the cluster by hitting the <NodeIP>:<NodePort>.
+
+When a NodePort is created, kube-proxy exposes a port in the range 30000-32767:
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ib-deployment
+  labels:
+    app: bank
+spec:
+  replicas: 3
+  selector:
+     matchLabels:
+       app: bank
+  template:
+    metadata:
+      labels:
+        app: bank
+    spec:
+      containers:
+        - name: cont1
+          image: sunil3012/ib-image:latest
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ib-service
+spec:
+  type: NodePort
+  selector:
+    app: bank
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 31143  //completely optional. the node port should range in between 30000-32767
+```
+
+### Load Balancer
+This Service type exposes the Service externally using a cloud provider’s load balancer. It is typically used in cloud environments like AWS, GCP, or Azure.
+
+A LoadBalancer is a Kubernetes service that:
+
+Creates a service like ClusterIP
+Opens a port in every node like NodePort
+Uses a LoadBalancer implementation from The cloud provider (your cloud provider needs to support this for LoadBalancers to work).
+
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ib-deployment
+  labels:
+    app: bank
+spec:
+  replicas: 3
+  selector:
+     matchLabels:
+       app: bank
+  template:
+    metadata:
+      labels:
+        app: bank
+    spec:
+      containers:
+        - name: cont1
+          image: sunil3012/ib-image:latest
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ib-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: bank
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 31143  
+```
+
+**To access the application**
+
+-> Go to Security groups and and select nodes security group and edit the inbound rules with the specific port number or allow all traffic and select anywhere IpV4
+
+-> type in this command `kubectl get svc` and you will get the application link or else go to aws console and load balancer and there you will find the url of the application
