@@ -1,22 +1,24 @@
 # Kubernetes
 
-Topics:
+**Topics:**
 
-1)Minikube
+🔹 **Minikube**
 
-2)replicaSet
+🔹 **replicaSet**
 
-3)Deployment
+🔹 **Deployment**
 
-4)Creating a Job
+🔹 **Creating a Job**
 
-5)Creating a cluster
+🔹 **Creating a cluster**
 
-6)Creating Namspaces
+🔹 **Creating Namspaces**
 
-7)Creating users,roles and permissions
+🔹 **Creating users,roles and permissions**
 
-8)Exposing the Applications via Services - Cluster IP, NodePort and Load Balancer
+🔹 **Exposing the Applications via Services - Cluster IP, NodePort and Load Balancer**
+
+🔹 **Deamon Set**
 
 
 
@@ -460,3 +462,33 @@ spec:
 -> Go to Security groups and and select nodes security group and edit the inbound rules with the specific port number or allow all traffic and select anywhere IpV4
 
 -> type in this command `kubectl get svc` and you will get the application link or else go to aws console and load balancer and there you will find the url of the application
+
+## Deamon Set
+
+✔️ DaemonSets ensure one pod per node for system-level services.
+
+✔️ Used for monitoring, logging, networking, and security.
+
+✔️ Automatically adds/removes pods when nodes join/leave the cluster.
+
+```
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ib-daemon
+  labels:
+    app: bank
+spec:
+  replicas: 3
+  selector:
+     matchLabels:
+       app: bank
+  template:
+    metadata:
+      labels:
+        app: bank
+    spec:
+      containers:
+        - name: cont1
+          image: sunil3012/ib-image:latest
+```
