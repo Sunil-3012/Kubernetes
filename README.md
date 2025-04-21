@@ -492,3 +492,163 @@ spec:
         - name: cont1
           image: sunil3012/ib-image:latest
 ```
+
+## Kubernetes Metric Server (Heapster)
+
+It's a scalable, efficient source for monitoring the overall health and performance of a Kubernetes cluster, providing the data needed for Kubernetes features like Horizontal Pod Autoscaler (HPA) and the Kubernetes Dashboard.
+
+This metric server in K8S will collect metrics information like cpu, ram etc for all pods and nodes in the cluster
+
+A single deployment that works on most clusters , collect metrics every 15 secs **`kubectl top pods/ nodes`**
+
+**Installing Metriic Server**
+
+`kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/high-availability-1.21+.yaml`
+
+Creating a sample deployment 
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ib-deployment
+  labels:
+    app: bank
+spec:
+  replicas: 3
+  selector:
+     matchLabels:
+       app: bank
+  template:
+    metadata:
+      labels:
+        app: bank
+    spec:
+      containers:
+        - name: cont1
+          image: sunil3012/ib-image:latest
+```
+
+We can autoscale using the following command **`kubectl auotscale deploy ib-deployment --cpu-percent=20 --min=2 --max=10`**
+
+To deploy it using the manifest file
+
+```
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ib-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ib-deployment
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 20
+```
+
+To check if the autoscaling is working or not we do stress testing on the container
+
+login to the container `kubectl exec -it contID -- /bin/bash`
+
+and run the following command
+
+```
+apt update
+apt install stress
+stress --cpu 8 --io 4 --vm 2 --vm-bytes 128M --timeout 60s
+```
+
+Watch the pods autoscale
+**`kubectl get pods --watch`**
+
+
+## Volumes 
+
+### PV - Persistent Volume
+
+there are two type of persistent volumes
+
+1) **Stateless**: if the pod is deleted the data is lost, because data is stored locally on the pod and instance
+
+2) **Stateful**: if the pod is deleted the data is persistent, because we can store the data in external storage like AWS EBS
+
+### PVC - Persistent Volume Claim
+
+TO use PV we need to claim the volume using PVC
+
+PVC request a PV with your desired specification(size, access, modes & speed etc) from K8S and once a suitable PV is found it will bound to PVC
+
+To create a Pv first create a **volume in aws ec2 instance with 10Gi magnetic volume and copy the volume ID**
+
+then create a PV yaml file `vi pv.yml`
+```
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  awsElasticBlockStore:
+    volumeID: vol-0a04bb207090810bd // copy the volume ID
+    fsType: ext4
+```
+
+Then create a PVC `vi pvc.yml`
+
+```
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec: 
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+```
+Then we create the deployment file mounting the volume to the container and claiming the PV
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pvdeploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+     app: bank
+  template:
+    metadata:
+      labels:
+        app: bank
+    spec:
+      containers:
+      - name: cont1
+        image: sunil3012/ib-image:latest
+        volumeMounts:
+        - name: my-pv
+          mountPath: "/tmp/persistent"
+      volumes:
+        - name: my-pv
+          persistentVolumeClaim:
+            claimName: my-pvc
+```
+
+To check if it's working or not
+
+login intio the container and go to `cd /tmp/persistent` and add few files
+
+Now delete the pod, A new pod will be created automatically and login to the new pod and again go to `cd /tmp/persistent` and you will see your files
