@@ -20,7 +20,11 @@
 
 🔹 **Deamon Set**
 
+🔹 **Kubernetes Metric Server (Heapster) aka Autoscaling**
 
+🔹 **Volumes(PV & PVC)**
+
+🔹 **Resource Quota**
 
 
 
@@ -652,3 +656,85 @@ To check if it's working or not
 login intio the container and go to `cd /tmp/persistent` and add few files
 
 Now delete the pod, A new pod will be created automatically and login to the new pod and again go to `cd /tmp/persistent` and you will see your files
+
+
+## Resource Quota
+
+To give limitation to a namespace for the pods,cpy, memory and various other things
+
+Create a sample namspace as Dev `kubectl create ns dev`
+
+and change the namespace from default to dev `kubectl config set-context --current --namespace=dev`
+
+use the below code to set the limitations where the max pods are 5, cpu=1, memory=1GB
+
+```
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: dev-quota
+  namespace: dev
+spec:
+  hard:
+    pods: "5"
+    limits.cpu: "1"
+    limits.memory: 1Gi
+```
+
+Use the sample deployment to test it 
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ib-deployment
+  labels:
+    app: bank
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bank
+  template:
+    metadata:
+      labels:
+        app: bank
+    spec:
+      containers:
+        - name: cont1
+          image: sunil3012/ib-image:latest
+          resources:
+            limits:
+              cpu: "0.3"
+              memory: 300Mi
+```
+
+this will work cause for 1 pod the req cpu is 0.3 and memory is 300 and there will be a total of 3 pods created.
+
+To test with different code
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ib-deployment
+  labels:
+    app: bank
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bank
+  template:
+    metadata:
+      labels:
+        app: bank
+    spec:
+      containers:
+        - name: cont1
+          image: sunil3012/ib-image:latest
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+```
