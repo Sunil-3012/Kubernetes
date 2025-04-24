@@ -751,6 +751,59 @@ spec:
               memory: 512Mi
 ```
 
+## ENV Variables(secrets and config maps)
+
+It is a way to pass configuration information to containers running within pods. To set Env vars it include the env or envFrom field in the configuration file.
+
+**ENV**: Allows you to set environment variables for a container, specifying a value directly for each variable through CLI/ Command prompt
+
+Create a sample deployment `kubectl create deploy newdb --image=mariadb`
+
+you will notice the container will get an error and it will not get in running state because it is crashed as we haven't specified the passsowrd for MariaDB
+
+you can pass the password using cli command `kubectl set env deploy newdb MYSQL_ROOT_PASSWORD=root123`
+
+when the container got an error it would have gone the following 2 errors
+
+* **ImagePullBackOff**: When a kubelet starts creating containers for a Pod using a container runtime, it might be possible the container is in Waiting state because of ImagePullBackOff.The status ImagePullBackOff means that a container could not start because Kubernetes could not pull a container image for reasons such as
+Invalid image name or Pulling from a private registry without imagePullSecret.
+
+* **CrashLoopBackOff** : When you see "CrashLoopBackOff," it means that kubelet is trying to run the container, but it keeps failing and crashing. After crashing, Kubernetes tries to restart the container automatically, but if the container keeps failing repeatedly, you end up in a loop of crashes and restarts, thus the term "CrashLoopBackOff."
+
+Now you can pass the variable with 2 different files
+
+1) **ConfigMaps** : It is used to store the data in key-value pair, files, or command-line arguments that can be used by pods, containers in cluster.
+But the data should be non-confidential. It does not provide security and encryption
+
+For this create a sample variable file 
+```
+MYSQL_ROOT_PASSWORD=root123456
+MYSQL_USER=admin
+```
+
+then create the deployment `kubectl create deploy newdb --image=mariadb`
+
+Now create the cm `kubectl create cm dbvars --from-env-file=vars `   It will create a configmap called dbvars using var file we created
+
+Now pass the cm to the deployment `kubectl set env deploy newdb --from=configmaps/dbvars`
+
+2) **Secrets** : To store sensitive data in an unencrypted format like passwords, ssh-keys etc it uses base64 encoded format
+
+Create the deployment : `kubectl create deploy newdb --image=mariadb`
+
+now create the secrets file `kubectl create secret generic my-secret --from-env-file=vars` from previous vars file
+
+Now pass on the secret to deployment `kubectl set env deploy newdb --from=secrets/my-secret`
+
+Now you see the pods are running without any error
+
+#### TO SEE SECRETS:
+
+`kubectl get secrets secret-name -o yaml`
+
+`echo -n "enter the unique code" | base64 -d`
+
+
 ## Ingress (Path Based Routing)
 
 * Ingress helps to expose HTTP and HTTPS routes from outside of the Cluster
@@ -763,8 +816,8 @@ spec:
 
 * Ingress provides encryption feature and helps to balance the load of the applications
 
-To Download the ingress copy this command **'kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.3.0/deploy/static/provider/cloud/deploy.yaml
-'**
+To Download the ingress copy this command **`kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.3.0/deploy/static/provider/cloud/deploy.yaml
+`**
 
 you need to create few  different deployments(Path) with clusterIP services and create an ingress file to connect with that deployments based on your requirements. Here Nginx acts as a load balancer
 
