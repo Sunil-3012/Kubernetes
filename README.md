@@ -217,11 +217,11 @@ Fist configure AWS via CLI
 First create a s3 bucket where all the data about the cluster can be stored
 
 ```
-aws s3api create-bucket --bucket sunil-kops-testbkt.k8s.local --region us-east-1
+aws s3api create-bucket --bucket sunil-kops-testbkt.k8s.local --region us-east-1    //// Chnage the bucket name
 
 ```
 
-To craete a bucket in another regrion other than us-east-1 you need to use
+To create a bucket in another regrion other than us-east-1 you need to use
 
 ```
 aws s3api create-bucket --bucket sunil-kops-testbkt.k8s.local --region us-east-1 --create-bucket-configuration LocationConstraint=us-east-1
@@ -244,7 +244,7 @@ export KOPS_STATE_STORE=s3://sunil-kops-testbkt.k8s.local
 Creating the cluster
 
 ```
-kops create cluster --name sunil.k8s.local --zones us-east-1a --master-count=1 --master-size t2.medium --node-count=2 --node-size t2.micro
+kops create cluster --name sunil.k8s.local --zones us-east-1a --master-count=1 --master-size t2.medium --node-count=2 --node-size t2.micro   // change your cluster name
 ```
 
 ```
@@ -258,12 +258,22 @@ kops validate cluster --wait 10m
 
 verify the cluster with the following command `kubectl get nodes` you should see 1 master node(control plane) and 2 worker nodes
 
-To scale in and scale the worker nodes
+## To scale in and scale the worker nodes and edit the worker nodes or cluster
 ```kops edit ig --name=sunil.k8s.local master-us-east-1a``` and change the min size and max size
 
 then `kops update cluster --name sunil.k8s.local --yes --admin`
 
 and `kops rolling-update cluster --yes`
+
+To edit the cluster `kops edit cluster sunil.k8s.local `
+
+To edit the nodes and change the instance type `kops edit ig nodes-us-east-1a --name sunil.k8s.local`
+
+then `kops update cluster --name sunil.k8s.local --yes`
+
+then `kops rolling-update cluster --name sunil.k8s.local --yes`
+
+Now relax for few minutes, K8s will do the job
 
 to **delete the cluster** 
 ```
@@ -276,7 +286,9 @@ To create the namesapce `kubectl create ns dev`
 
 to view in which namespace you are `kubectl config view`
 
-th change to another namespace `kubectl config set-context --current --namespace=dev`
+to change to another namespace `kubectl config set-context --current --namespace=dev`
+
+or to go back to default namspace `kubectl congig use-context minikube`
 
 
 ## Creating roles and permissions
@@ -738,3 +750,138 @@ spec:
               cpu: "1"
               memory: 512Mi
 ```
+
+## Ingress (Path Based Routing)
+
+* Ingress helps to expose HTTP and HTTPS routes from outside of the Cluster
+
+* Ingress supports Host based routing and path based routing
+
+* Ingress supports load balancing and SSL termination
+
+* IT redirect the incoming requests to the right services based on the web url or path in the address
+
+* Ingress provides encryption feature and helps to balance the load of the applications
+
+To Download the ingress copy this command **'kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.3.0/deploy/static/provider/cloud/deploy.yaml
+'**
+
+you need to create few  different deployments(Path) with clusterIP services and create an ingress file to connect with that deployments based on your requirements. Here Nginx acts as a load balancer
+
+Create few different deployment 
+
+#### Internet banking deployment
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: internet-banking  
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ibbank
+  template:
+    metadata:
+      labels:
+        app: ibbank
+    spec:
+      containers:
+      - name: ibcont
+        image: sunil3012/ib-image:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: TITLE
+          value: "internet-banking"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: internet-banking  
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+  selector:
+    app: ibbank
+```
+
+#### Mobile banking deployment
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mobile-banking  
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mbbank
+  template:
+    metadata:
+      labels:
+        app: mbbank
+    spec:
+      containers:
+      - name: mbcont
+        image: sunil3012/mb-image:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: TITLE
+          value: "mobile-banking"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mobile-banking
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+  selector:
+    app: mbbank
+```
+
+#### Ingress file
+
+```
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: k8s-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /mobile-banking(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: mobile-banking
+                port:
+                  number: 80
+          - path: /internet-banking(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: internet-banking
+                port:
+                  number: 80
+          - path: /(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: internet-banking
+                port:
+                  number: 80
+```
+Now create all these deployments. To get the ingress and load balancer url `kubectl get ing`
