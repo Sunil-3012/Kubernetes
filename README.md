@@ -1,4 +1,6 @@
-# Kubernetes
+<div align="center">
+  <h1>Kubernetes</h1>
+</div>
 
 **Topics:**
 
@@ -25,6 +27,12 @@
 🔹 **Volumes(PV & PVC)**
 
 🔹 **Resource Quota**
+
+🔹 **ENV Variables(secrets and config maps)**
+
+🔹 **Ingress (Path Based Routing)**
+
+🔹 **Helm & ArgoCD**
 
 
 
@@ -938,3 +946,49 @@ spec:
                   number: 80
 ```
 Now create all these deployments. To get the ingress and load balancer url `kubectl get ing`
+
+## Helm & ArgoCD
+
+* In K8S Helm is a package manager to install packages. it is used to install applications on clusters.
+  
+* ArgoCD is a declarative continuous delivery tool for Kubernetes. ArgoCD is the core component of Argo Project.
+It helps to automate the deployment and management of applications in a K8s cluster.
+
+To Install Helm on mac `brew install helm`
+
+for windows 
+`
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod 700 get_helm.sh
+./get_helm.sh
+`
+
+`helm version`
+
+### Install ArgoCD with helm
+
+1) add the ArgoCd repo `helm repo add argo https://argoproj.github.io/argo-helm`  or visit this website [https://artifacthub.io/packages/helm/argo/argo-cd]
+
+2) Create a seperate namespace and install ArgoCD(optional) `kubectl create namespace argocd`
+
+`helm install argocd argo/argo-cd --namespace argocd`
+
+3) to access the argoCD type in this command you will get the load balancer link `kubectl get all -n argocd`
+
+4) Expore the argoCD server `kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'`
+
+5) To generate the password **user : admin** type this command in terminal `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d`
+
+copy paste the passwrod in the browser and you will be logged in.
+
+### To create a sample deployment on ArgoCD
+
+follow this process
+
+**create app --> Application Name --> YourAppName --> Project Name --> default --> Sync Policy --> Automatic --> Repository --> [https://github.com/Sunil-3012/Kubernetes.git] --> Path --> ./ --> CLuster URL --> NameSpace --> default**
+
+`kubectl get pods`  it created automatically from argocd
+
+`kubectl get svc`   copy paste the elb on browser and site should be running
+
+
